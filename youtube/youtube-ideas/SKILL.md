@@ -255,3 +255,8 @@ The final report should be a markdown file with these sections:
 - **Use execute_code for parsing** — the ytInitialData JSON is 400K+ chars. Parsing it in Python via `execute_code` keeps it out of your context window.
 - **Save the report as a .md file** — the user can review, edit, and share it.
 - **Offer to save as a skill** — after completing a complex analysis, offer to save the workflow. This skill itself was created from such an offer.
+
+## Handling Missing youtube-content Dependency
+If the `youtube-content` skill is not available, this skill will fallback to using `web_search` to approximate transcript data, but accuracy may be reduced. Alternatively, you can manually provide transcript text.
+
+---

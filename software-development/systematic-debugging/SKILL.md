@@ -219,6 +219,7 @@ search_files("similar_pattern", path="src/", file_glob="*.py")
 - What's different between working and broken?
 - List every difference, however small
 - Don't assume "that can't matter"
+- **Pay special attention to environment differences:** cron, containers, subprocesses, and daemons often see a different `HERMES_HOME`, `HOME`, cwd, or filesystem layout than an interactive terminal. A script that works manually can fail under the scheduler because paths are hardcoded to the host layout. See `references/cron-container-environment-mismatch.md`.
 
 ### 4. Understand Dependencies
 
