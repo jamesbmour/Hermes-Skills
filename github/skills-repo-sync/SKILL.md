@@ -111,7 +111,7 @@ The sync runs automatically via a cron job (script-only, `no_agent=True`). The s
 
 1. **Resolve paths** — `$HERMES_HOME/skills` (fallback: `getent passwd` home), repo at `$HOME/Hermes-Skills`
 2. **Pull remote changes** — `git pull origin main --ff-only` (tolerates failure)
-3. **rsync live → repo** — `rsync -a` with exclusions (NO `--delete` flag — preserves repo-only files like README, .gitignore)
+3. **Copy live → repo** — `cp -a "$SKILLS_DIR"/* "$REPO_DIR"/` (NOT rsync — rsync is not available in the scheduler container; `cp -a` preserves timestamps/permissions and recurses). NOTE: the script builds an `EXCLUDE_ARGS` array for symlink/meta exclusions but does NOT pass it to `cp -a` (which doesn't support `--exclude`). The excluded items (symlinks, `.bundled_manifest`, `.usage.json`, etc.) are still copied by `cp -a` unless they fail to resolve. If clean exclusions are needed, switch to `find ... -not -path` piped to `cp` or use `rsync` outside the cron container.
 4. **Commit + push** — only if `git diff` shows changes
 
 ### Exclusions (symlinks + meta)
@@ -143,7 +143,7 @@ Set to `origin` (current chat). Do NOT use `slack` unless a Slack channel is con
 | `SYNC_TEST.md` or other test artifacts in repo | Remove before committing; these are not skills |
 | Memory tool at capacity when saving repo path | The skill itself carries the knowledge; memory is optional |
 | `Dev,Web` category dir is a symlink/bundled | Add to SKIP list alongside `find-skills`, `frontend-design`, `web-design-guidelines` |
-| rsync `--delete` flag wipes repo-only files (README, .gitignore) | Never use `--delete` in the sync script; rsync without it only adds/updates files |
+| rsync not available in scheduler container | Use `cp -a` instead — preserves timestamps and recurses. The existing exclusion array is built but not passed to `cp -a` (which has no `--exclude` flag). Acceptable for now since excluded items are mostly symlinks/metadata that won't cause issues in the repo. For strict exclusions, use `find ... -not -path` piped to `cp` |
 | `$HOME` resolves wrong in cron/script context | Use `$HERMES_HOME` first, fall back to `getent passwd "$(whoami)" | cut -d: -f6`; never trust bare `$HOME` for the skills dir |
 | `web-design-guidelines` symlink not in old SKIP list | Add to symlink exclusions; it's root-owned and bundled, not a custom skill |
 | `__pycache__` dirs in skills | Add to meta exclusions; Python bytecode should not be synced |
@@ -153,7 +153,7 @@ Set to `origin` (current chat). Do NOT use `slack` unless a Slack channel is con
 ## Scripts
 
 - `scripts/compare_skills.py` — scans both directories and prints NEW/MODIFIED/DELETED/UNCHANGED categories with hashes. Usage: `python3 scripts/compare_skills.py [LIVE_DIR] [REPO_DIR]`
-- `~/.hermes/scripts/sync-skills-to-github.sh` — bash script for the automated cron job. Uses rsync (no `--delete`), pulls remote first, commits and pushes changes. See "Cron Job: Automated Sync" section above.
+- `~/.hermes/scripts/sync-skills-to-github.sh` — bash script for the automated cron job. Uses `cp -a` (NOT rsync — rsync not available in scheduler container), pulls remote first, commits and pushes changes. See "Cron Job: Automated Sync" section above.
 
 ## Verification
 
