@@ -234,109 +234,14 @@ fi
 
 ---
 
-## Fine-Grained Personal Access Tokens
-
-Fine-grained PATs (prefix `github_pat_`) are GitHub's recommended token type. They differ from classic tokens (prefix `ghp_`) in important ways:
-
-- **Repository-scoped**: You must explicitly select which repos the token can access
-- **Permission-based**: Instead of broad scopes like `repo`, you grant individual permissions (Contents, Issues, Pull requests, Metadata, etc.) per repo
-- **Read/write granularity**: Each permission can be Read-only or Read and Write
-
-### Creating a Fine-Grained PAT
-
-Tell the user to go to: **https://github.com/settings/tokens?type=beta**
-
-- Under **Repository access**, select **Only select repositories** → choose the target repo(s)
-- Under **Repository permissions**:
-  - **Contents**: Read and Write (required for git push)
-  - **Metadata**: Read (automatically required, always grant)
-  - **Pull requests**: Read and Write (if the workflow involves PRs)
-  - **Workflows**: Read and Write (if touching GitHub Actions files)
-
-### Diagnosing Fine-Grained PAT Permission Issues
-
-**Symptom**: Token authenticates via API (`/user` returns correct login, `/repos/{owner}/{repo}` returns repo details) but `git push` returns 403 "Permission denied" or "Resource not accessible by personal access token."
-
-**Root cause**: The token was created without `Contents: Write` permission for the target repository.
-
-**Diagnostic command** — check token permissions BEFORE attempting push:
-
-```bash
-# Check if token can write to the repo
-curl -s -H "Authorization: token $GITHUB_TOKEN" \
-  https://api.github.com/repos/$OWNER/$REPO | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-p = d.get('permissions', {})
-print(f'admin={p.get(\"admin\")}, push={p.get(\"push\")}, pull={p.get(\"pull\")}')
-"
-
-# Test write access via the Contents API (creates then we can delete)
-curl -s -X PUT \
-  -H "Authorization: token $GITHUB_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"message":"test write","content":"dGVzdA=="}' \
-  https://api.github.com/repos/$OWNER/$REPO/contents/_test_write.md
-# If response contains "content" → write works. Clean up with a DELETE.
-# If response contains "Resource not accessible" → token lacks Contents: Write permission
-```
-
-**Fix**: Have the user edit the token at https://github.com/settings/tokens (find the fine-grained token → Edit → Repository permissions → Contents → Read and Write) or create a new one.
-
-### Git Credential Helper with Fine-Grained PATs
-
-Fine-grained PATs work with the standard `credential.helper store` method, but the credential URL format matters:
-
-```bash
-# ✅ Correct — use x-access-token as the "username" (works for fine-grained PATs)
-echo "https://x-access-token:$TOKEN@github.com" > ~/.git-credentials
-
-# ❌ May fail — using the GitHub username can cause auth confusion with fine-grained PATs
-echo "https://jamesbmour:$TOKEN@github.com" > ~/.git-credentials
-```
-
-**Alternative**: Embed token directly in the remote URL (per-repo, avoids credential helper issues):
-
-```bash
-git remote set-url origin https://x-access-token:$TOKEN@github.com/$OWNER/$REPO.git
-```
-
-## Installing gh CLI Without Sudo
-
-When `gh` is not installed and you don't have root access, install it as a local binary:
-
-```bash
-GH_VERSION="2.65.0"
-ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-case "$ARCH" in
-  amd64) GH_ARCH="linux_amd64" ;;
-  arm64) GH_ARCH="linux_arm64" ;;
-  *) GH_ARCH="linux_${ARCH}" ;;
-esac
-curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz" -o /tmp/gh.tar.gz
-tar -xzf /tmp/gh.tar.gz -C /tmp
-mkdir -p ~/.local/bin
-cp /tmp/gh_${GH_VERSION}_${GH_ARCH}/bin/gh ~/.local/bin/gh
-chmod +x ~/.local/bin/gh
-export PATH="$HOME/.local/bin:$PATH"
-gh --version
-```
-
-Then authenticate with: `echo "<TOKEN>" | gh auth login --with-token && gh auth setup-git`
-
-**Helper script**: `scripts/check-token-permissions.sh` — runs the full diagnostic flow (auth check, permission check, write test) for any repo. Usage: `bash scripts/check-token-permissions.sh <owner>/<repo>`
-
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
 | `git push` asks for password | GitHub disabled password auth. Use a personal access token as the password, or switch to SSH |
-| `remote: Permission to X denied` (classic token) | Token may lack `repo` scope — regenerate with correct scopes |
-| `remote: Permission to X denied` (fine-grained PAT, `github_pat_` prefix) | Token has `Contents: Read` but not `Contents: Write` — edit token at https://github.com/settings/tokens and grant Write permission for the target repo |
-| `Resource not accessible by personal access token` | Same as above — fine-grained PAT lacks the specific write permission. Run the diagnostic curl above to confirm |
-| Token works via API but push returns 403 | Fine-grained PAT authenticates but lacks repo-level write permission. Check `permissions.push` in the API response — if `false`, the token needs to be recreated with `Contents: Read and Write` |
+| `remote: Permission to X denied` | Token may lack `repo` scope — regenerate with correct scopes |
 | `fatal: Authentication failed` | Cached credentials may be stale — run `git credential reject` then re-authenticate |
 | `ssh: connect to host github.com port 22: Connection refused` | Try SSH over HTTPS port: add `Host github.com` with `Port 443` and `Hostname ssh.github.com` to `~/.ssh/config` |
 | Credentials not persisting | Check `git config --global credential.helper` — must be `store` or `cache` |
 | Multiple GitHub accounts | Use SSH with different keys per host alias in `~/.ssh/config`, or per-repo credential URLs |
-| `gh: command not found` + no sudo | Install gh locally (see "Installing gh CLI Without Sudo" above) or use git-only Method 1 |
+| `gh: command not found` + no sudo | Use git-only Method 1 above — no installation needed |

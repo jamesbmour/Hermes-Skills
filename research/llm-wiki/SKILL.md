@@ -99,32 +99,12 @@ at hand before creating anything new.
 When the user asks to create or start a wiki:
 
 1. Determine the wiki path (from `$WIKI_PATH` env var, or ask the user; default `~/wiki`)
-2. **Create the full directory structure** including all subdirectories:
-   `raw/{articles,papers,transcripts,assets}`, `entities/`, `concepts/`, `comparisons/`,
-   `queries/`, `_archive/` — the initial init often only creates the top-level files
-   (SCHEMA.md, index.md, log.md) but NOT the subdirectories needed for actual content
+2. Create the directory structure above
 3. Ask the user what domain the wiki covers — be specific
 4. Write `SCHEMA.md` customized to the domain (see template below)
 5. Write initial `index.md` with sectioned header
 6. Write initial `log.md` with creation entry
 7. Confirm the wiki is ready and suggest first sources to ingest
-
-### WIKI_PATH Configuration
-
-The wiki is invisible to automated workflows (cron jobs, scheduled ingests) unless
-`WIKI_PATH` is set in `${HERMES_HOME:-~/.hermes}/.env`. Always verify this is set:
-
-```bash
-grep WIKI_PATH "${HERMES_HOME:-~/.hermes}/.env"
-```
-
-If missing, add it:
-```bash
-echo "WIKI_PATH=/path/to/wiki" >> "${HERMES_HOME:-~/.hermes}/.env"
-```
-
-If a user says "my wiki isn't being used" or "why isn't the wiki working," the first
-thing to check is whether `WIKI_PATH` is configured and whether the subdirectories exist.
 
 ### SCHEMA.md Template
 
@@ -413,56 +393,6 @@ When ingesting multiple sources at once, batch the updates:
 5. Update index.md once at the end
 6. Write a single log entry covering the batch
 
-### Large-Scale Bulk Ingest (50+ source files)
-
-When ingesting a large corpus (50+ files, e.g. a full crawled documentation site):
-
-1. **Copy raw files first:** `cp -r <source_dir> $WIKI/raw/articles/<name>` — get all
-   sources into the immutable layer before any wiki page creation.
-
-2. **Build an inventory:** Use `execute_code` to scan all files, extract frontmatter
-   (title, url), determine section/page-type, and output a structured JSON inventory.
-   This drives the parallel worker assignment and prevents missed files.
-
-3. **Update SCHEMA.md tags BEFORE creating pages:** Add domain-specific tags to the
-   taxonomy first. Workers cannot use tags that don't exist in the schema yet.
-
-4. **Dispatch parallel `delegate_task` workers** (up to 3 concurrent), splitting by
-   natural section boundaries (e.g. by module, by directory). Give each worker:
-   - Its assigned file list with exact source paths and target wiki page names
-   - The frontmatter template (title, created, updated, type, tags, sources)
-   - Cross-reference guidance: which modules link to which (e.g. AP↔AR, GL↔all)
-   - Page size limit (under 200 lines)
-   - Tags from the SCHEMA taxonomy
-
-5. **Workers hit limits — plan for it:** `delegate_task` workers have iteration limits
-   (~50 tool calls) and timeouts (600s). For a worker assigned 90+ files, it may only
-   finish concept pages before hitting the limit. Mitigation:
-   - Assign at most ~40-50 entity files per worker (read + write = 2 tool calls each)
-   - Check the filesystem after each worker completes to see what was actually created
-   - Redispatch additional workers for any missing entity pages
-   - Workers that "timeout" may still have completed most of their work — always verify
-     by listing the output directory rather than trusting the status
-
-6. **Generate index.md programmatically:** Use `execute_code` to scan all `.md` files
-   in `concepts/` and `entities/`, extract titles from frontmatter, and write the
-   complete index in one pass. For 200+ pages this is the only practical approach.
-
-7. **Write the log entry** covering the full batch: source count, page count by type,
-   modules covered, and any issues encountered.
-
-**Real-world example:** 327 crawled Sage Intacct developer docs → 233 wiki pages
-(36 concept pages, 197 entity pages) across 14 API modules, web services, 3 SDKs,
-platform services, customization, DDS, ERDs, 10 years of release notes, and FAQ.
-Processed via 6 parallel worker dispatches across 2 rounds.
-
-See `references/bulk-ingest-pattern.md` for the full step-by-step pattern with
-code snippets and the real-world example.
-
-See `references/file-ingest-patterns.md` for patterns on ingesting research reports
-and generated files into the wiki (read_file line-number stripping, raw source
-frontmatter, entity/comparison page templates).
-
 ### Archiving
 
 When content is fully superseded or the domain scope changes:
@@ -566,20 +496,6 @@ vault in Obsidian on your laptop/phone — changes appear within seconds.
   The agent should check log size during lint.
 - **Handle contradictions explicitly** — don't silently overwrite. Note both claims with dates,
   mark in frontmatter, flag for user review.
-- **WIKI_PATH must be set in .env** — without it the wiki is invisible to cron jobs and
-  automated workflows. A wiki that "isn't being used" is almost always a missing `WIKI_PATH`
-  or missing subdirectories. Check both first.
-- **Subdirectories must exist before ingest** — `raw/{articles,papers,transcripts,assets}`,
-  `entities/`, `concepts/`, `comparisons/`, `queries/` must be created at init time. An
-  initialization that only writes the three top-level .md files leaves the wiki unusable.
-- **Large bulk ingests need parallel workers** — for 50+ source files, use `delegate_task`
-  with up to 3 concurrent workers. Assign at most ~40-50 files per worker (each file = read +
-  write = 2 tool calls, and workers cap at ~50 tool calls). Check the filesystem after each
-  worker completes — workers that timeout may still have created most of their pages. Redispatch
-  for any gaps.
-- **Generate index.md programmatically for large wikis** — for 100+ pages, use `execute_code`
-  to scan all `.md` files, extract titles from frontmatter, and write the index in one pass.
-  Hand-writing 200+ index entries is impractical.
 
 ## Related Tools
 
