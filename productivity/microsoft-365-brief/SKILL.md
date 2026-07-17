@@ -65,6 +65,8 @@ Set this shorthand at the start of the prompt:
 MGAPI="python3 /home/hermeswebui/.hermes/skills/productivity/microsoft-graph/scripts/msgraph_api.py"
 ```
 
+**Portability:** The path above is hardcoded to a specific install. When exporting the cron job to another Hermes instance, replace with the new system's path — typically `python3 ~/.hermes/skills/productivity/microsoft-graph/scripts/msgraph_api.py` (or the absolute path if `$HOME` resolves differently in the cron env). Use `$HERMES_HOME` if set: `python3 ${HERMES_HOME}/skills/productivity/microsoft-graph/scripts/msgraph_api.py`.
+
 #### Unread Emails
 ```
 $MGAPI mail search "isRead eq false" --top 20
@@ -158,7 +160,7 @@ Use plain text (NOT markdown) since the brief goes to email. Structure:
 ## Pitfalls
 
 1. **`enabled_toolsets: []` is the OLD Zapier pattern.** The new direct Graph API approach uses `["terminal", "web", "file"]`. Setting `[]` still works but is unnecessary.
-2. **`msgraph_api.py` path must be absolute.** The cron agent runs in a fresh session — relative paths won't resolve. Use the full path: `/home/hermeswebui/.hermes/skills/productivity/microsoft-graph/scripts/msgraph_api.py`.
+2. **`msgraph_api.py` path must be absolute.** The cron agent runs in a fresh session — relative paths won't resolve. Use the full path: `/home/hermeswebui/.hermes/skills/productivity/microsoft-graph/scripts/msgraph_api.py`. When exporting to another Hermes install, update this path to match the new `$HERMES_HOME` or home directory.
 3. **To Do list IDs contain `=` signs.** `msgraph_api.py` handles URL-encoding internally — just pass the raw ID.
 4. **`$search` and `$orderby` are mutually exclusive** in Microsoft Graph. For Intacct email search, use `$search` without `$orderby`.
 5. **Email body must be plain text.** `msgraph_api.py mail send` defaults to Text format. Markdown doesn't render in all email clients.
@@ -177,4 +179,5 @@ After creating or updating the job:
 
 ## References
 
-See `references/graph-api-endpoints.md` for the complete list of verified Microsoft Graph API endpoints and example responses.
+- See `references/graph-api-endpoints.md` for the complete list of verified Microsoft Graph API endpoints and example responses.
+- See `references/exporting-cron-jobs.md` for how to export brief cron jobs (and other cron jobs) for import into another Hermes install, including path portability guidance.

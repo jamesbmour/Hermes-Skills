@@ -242,38 +242,31 @@ Deliver the analysis in this structure:
 6. **Tone.** Sharp, direct, analyst-grade. No cheerleading. If a stock is trash, say so and explain why. If it's a buy, don't hedge — commit.
 7. **Disclaimer required.** Always include the disclaimer at the bottom.
 
-## Data Collection Strategy
+## Research Sources
 
-**Tier 1 (preferred):** `web_search` + `web_extract` for fast text extraction. Use when available.
+Use web_search and terminal(curl) to pull data from these sources (in priority order):
 
-**Tier 2 (fallback):** Browser tools (`browser_navigate` + `browser_console` with JS DOM extraction). Use when web_search/web_extract are unavailable or when a site blocks text extraction but renders in browser. This is the most reliable method — it works even when Firecrawl is unconfigured and when sites like Finviz block with Cloudflare.
+**Price & Technicals:**
+- Yahoo Finance: `https://finance.yahoo.com/quote/{TICKER}`
+- Finviz: `https://finviz.com/quote.ashx?t={TICKER}`
+- TradingView: `https://www.tradingview.com/symbols/{TICKER}/`
 
-See `references/data-extraction.md` for ready-to-use JavaScript snippets and the full Yahoo Finance / MarketBeat URL routes that cover every pillar.
+**Fundamentals & Filings:**
+- SEC EDGAR: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={TICKER}`
+- Yahoo Finance Statistics page
+- Macrotrends: `https://www.macrotrends.net/stocks/charts/{TICKER}/`
 
-See `references/data-sources.md` for curl-based API endpoints (Yahoo v8 chart API, SEC EDGAR submissions JSON), common CIK numbers, technical indicator calculation formulas (RSI, MACD, Bollinger, ATR), and a quick-reference table of which sources work vs. which are blocked.
+**News & Sentiment:**
+- Google News: search "{TICKER} stock news"
+- MarketWatch, CNBC, Bloomberg, Reuters
 
-**Tier 3:** `terminal` with `curl` for plain-text endpoints (SEC EDGAR filing lists, CSV downloads).
+**Analyst & Insider:**
+- TipRanks or MarketBeat for analyst consensus
+- SEC Form 4 filings for insider trades
+- Nasdaq.com for institutional ownership and short interest
 
-### Yahoo Finance URL Routes (all via browser_navigate)
-
-| Pillar | URL | What to Extract |
-|---|---|---|
-| Summary/Price | `/quote/{TICKER}` | Price, 52-wk range, volume, market cap, P/E, EPS, beta, dividend — via `li` spans |
-| Full Statistics | `/quote/{TICKER}/key-statistics` | Valuation, profitability, balance sheet, short interest, moving averages — via `table tr` |
-| Analyst Estimates | `/quote/{TICKER}/analysis` | EPS/revenue estimates, surprise history, revision trends — via `table tr` |
-| Holders | `/quote/{TICKER}/holders` | Institutional %, top holders, insider ownership — via `table tr` |
-| Profile | `/quote/{TICKER}/profile` | Sector, industry, employees, executives, filings — via text + `table tr` |
-| Financials | `/quote/{TICKER}/financials` | Income statement (revenue, margins, EPS, EBITDA) — via `article.textContent` |
-| Historical Prices | `/quote/{TICKER}/history` | OHLCV data for technical analysis — via `table tr` |
-| News | `/quote/{TICKER}/news` | Headlines, sources, timestamps — via `h3` elements |
-
-### MarketBeat (for analyst consensus + insider + short interest)
-
-- `https://www.marketbeat.com/stocks/NYSE:{TICKER}/` — comprehensive stats, analyst ratings, insider activity, short interest, news headlines. Use `dl/dt/dd` for key-value pairs and `table tr` for structured data. Dismiss any modal popup first.
-
-### Peer Data
-
-For each peer ticker, navigate to `https://finance.yahoo.com/quote/{PEER}` and extract the same `li` summary stats. Batch 2-3 peers in parallel by navigating sequentially (browser is single-tab).
+**Peer Comparison:**
+- Finviz screener or Yahoo Finance peer comparison tools
 
 ## Common Pitfalls
 
@@ -285,10 +278,6 @@ For each peer ticker, navigate to `https://finance.yahoo.com/quote/{PEER}` and e
 6. **Overweighting news.** News is sentiment, not truth. The most important sections are fundamentals and technicals — news provides context, not the thesis.
 7. **Missing the short case.** Even for a BUY verdict, the bear case section must be honest and substantive. If you can't articulate a real bear case, you haven't understood the risks.
 8. **No peer context.** A stock that looks cheap at 15x earnings might be expensive if peers trade at 10x. Always benchmark.
-9. **Finviz Cloudflare block.** `finviz.com` frequently blocks automated access with a Cloudflare "Just a moment..." interstitial. Don't waste time retrying — skip to Yahoo Finance or MarketBeat for the same data.
-10. **browser_console JS variable scoping.** If you run two `browser_console` expressions with the same variable name in the same page session, the second will fail with `SyntaxError: Identifier 'X' has already been declared`. Wrap code in an IIFE: `(() => { ... })()`. This is the reliable pattern for all `browser_console` expressions.
-11. **Yahoo Finance modal popup.** The statistics page may show a promotional modal on load. Dismiss it by clicking the Close button (ref ID from snapshot) before extracting data.
-12. **browser_console quote escaping.** `browser_console` `expression` parameter is a JSON string — embedded double quotes inside the JS code cause `SyntaxError: Invalid or unexpected token`. Use single quotes inside the JS expression and avoid template literals with backtick-dollar sequences. Prefer the IIFE pattern from `references/data-extraction.md` which is pre-escaped.
 
 ## Verification Checklist
 
