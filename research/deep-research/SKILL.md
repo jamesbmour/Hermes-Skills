@@ -1,7 +1,7 @@
 ---
 name: deep-research
 description: "Use when the user wants comprehensive, multi-source research on ANY topic — companies, technologies, historical events, scientific questions, industries, policy, trends, or competitive landscapes. Triggered by 'deep research on X', 'research X in depth', 'tell me everything about X', 'comprehensive analysis of X', 'deep dive into X', '/deep-research X', or any request for thorough, sourced investigation. Produces a structured report with executive summary, key findings, detailed analysis across multiple angles, and cited sources."
-version: 1.1.0
+version: 1.0.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -66,8 +66,6 @@ delegate_task(
 ```
 
 For simpler topics (2-3 angles), do the searches inline with `terminal` + `curl`.
-
-**PITFALL — subagent web tool limitations:** `delegate_task` with `toolsets=["web"]` may produce subagents that only have Context7 MCP documentation tools — NOT general web search/fetch. When parallel subagents return training-knowledge summaries instead of live web research, fall back to doing web research yourself via `terminal` + `curl`. Use `execute_code` to batch multiple `curl` calls and process results programmatically. See `references/web-research-techniques.md` for proven search and content extraction methods (Marginalia Search, WordPress REST API, industry directory mining).
 
 ### Phase 3: Deep Dives (Conditional)
 
@@ -196,7 +194,6 @@ Use the output template below. Adapt section headings to fit the topic — the t
 |---|---|---|
 | **Technology** | How it works, key players, recent breakthroughs, applications, timeline to maturity, competitive landscape, regulatory issues | Focus on technical accuracy. Cite arXiv papers and engineering sources. |
 | **Company/Business** | Business model, financials, competitive position, leadership, strategy, risks, market context | Use `deepstock` if the user wants a BUY/SELL verdict. This skill is for business analysis, not investment advice. |
-| **Competitor Analysis** | Subject company profile, direct competitors, indirect competitors, market position, differentiation, gaps/opportunities, industry trends | Scrape the subject company's website FIRST to inform competitor searches. Mine industry directories (e.g., Leonard's Guide for warehousing) for small/mid-size competitors search engines miss. Search by geography + service type. Include competitive matrix tables. See `references/web-research-techniques.md` for directory URLs. |
 | **Industry/Market** | Market size & growth, key players, trends, regulations, barriers to entry, disruption risks | Include TAM/SAM/SOM if available. Cite industry reports. |
 | **Policy/Regulation** | What the policy does, who it affects, political context, implementation status, impact analysis, supporters/opponents | Present multiple viewpoints fairly. Cite government sources and advocacy groups. |
 | **Science/Research** | Current understanding, recent breakthroughs, key researchers/institutions, remaining unknowns, practical implications | Cite papers (use `arxiv` if relevant). Distinguish between consensus and frontier research. |
@@ -226,13 +223,6 @@ Use the output template below. Adapt section headings to fit the topic — the t
 9. **Too long or too short.** Aim for a report that takes 5-10 minutes to read. Shorter = missed depth. Longer = the user won't finish it. Use clear section breaks so they can skim.
 
 10. **Fabricating data.** Never invent statistics, dates, or quotes. If you can't find a data point, say "data unavailable" rather than guessing. The user trusts this report — don't betray that trust.
-
----
-
-## Templates
-
-- **`templates/competitor-analysis-prompt.md`** — Reusable prompt scaffold for deep research competitor analysis on any company. Includes execution notes for website scraping, competitor categorization, directory mining, and synthesis. Use when the user asks for `/deep-research` on competitors for a specific company and provides a website URL.
-- **`references/bsl-competitor-knowledge-bank.md`** — Condensed competitor profiles, market data, and search techniques from the June 2026 BSL competitive analysis. Load this when doing any follow-up research on Brendamour Specialized Logistics, its competitors, or the specialized equipment logistics industry to avoid re-researching known facts.
 
 ---
 

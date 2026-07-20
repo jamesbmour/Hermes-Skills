@@ -114,8 +114,9 @@ Generate a research-backed content strategy report for a YouTube channel (or sim
    **Approach B — direct curl searches (faster for single-agent sessions):**
    See `references/trend-research-techniques.md` for full details. Key sources:
    - **Hacker News front page + /show** — `curl` + grep for `titleline` class. Excellent for real-time dev sentiment.
-   - **DuckDuckGo HTML** — `curl 'https://html.duckduckgo.com/html/?q=...'` + grep for `result__a` class. Google blocks curl; DDG works reliably.
-   - Combine both for a fast trend snapshot without spawning subagents.
+   - **DuckDuckGo HTML** — `curl 'https://html.duckduckgo.com/html/?q=...'` + grep for `result__a` class. Google blocks curl; DDG may work but as of mid-2026 can also show a CAPTCHA. If DDG is blocked, skip to GitHub Trending.
+   - **GitHub Trending** — navigate to `https://github.com/trending/python?since=weekly` and use `browser_console` to extract repo data as JSON. Best fallback when DDG/Bing show captchas (see references/trend-research-techniques.md for the extraction script).
+   - Combine multiple sources for a fast trend snapshot without spawning subagents.
 
 3. **Synthesize trends** into a ranked list with:
    - Trend name and description
@@ -188,7 +189,7 @@ Both files are placed in the user's home directory (or a specified path):
 
 - `references/channel-analysis-commands.md` — proven yt-dlp commands for channel metadata, video listing, and transcript fetching
 - `references/youtube-channel-scraping.md` — full technique for scraping channel data via ytInitialData JSON (no yt-dlp needed; faster, includes channel metadata)
-- `references/trend-research-techniques.md` — direct curl techniques for Hacker News and DuckDuckGo trend research without spawning subagents
+- `references/trend-research-techniques.md` — direct curl/browser techniques for Hacker News, DuckDuckGo, and GitHub Trending trend research without spawning subagents
 - `scripts/strip_emoji.py` — strips emoji and problematic Unicode before PDF conversion; accepts `--in-place`
 
 ## Verification Checklist
@@ -213,5 +214,5 @@ Both files are placed in the user's home directory (or a specified path):
 4. **execute_code can't use pip packages** — the sandbox doesn't inherit system Python packages. Use `terminal()` for Python scripts that need `markdown`, `weasyprint`, or other installed libraries.
 5. **View counts are zero in flat-playlist dumps** — `yt-dlp --flat-playlist` doesn't include view counts. For view data, fetch individual video metadata or estimate from context.
 6. **json.loads fails on ytInitialData** — the raw JSON from YouTube's HTML contains control characters that strict `json.loads` rejects. Always use `json_parse()` from `hermes_tools` (which uses `strict=False`) when parsing scraped YouTube JSON.
-7. **Google search blocks curl** — `curl` to Google search returns a JS challenge page with no extractable results. Use DuckDuckGo's HTML endpoint (`html.duckduckgo.com/html/`) instead, which returns parseable HTML.
+7. **Search engines block curl and browser** — Google returns a JS challenge page. As of mid-2026, DuckDuckGo also shows a CAPTCHA ("bots use DuckDuckGo too") and Bing shows a Cloudflare "Verify you are human" challenge. When all three are blocked, fall back to **GitHub Trending** (`https://github.com/trending/python?since=weekly`) which is publicly accessible without captcha and provides direct adoption signals via "stars this week" metrics. See `references/trend-research-techniques.md` for the `browser_console` extraction script.
 8. **YouTube renderer key names change** — the internal JSON structure (`richItemRenderer`, `lockupViewModel`, etc.) can change without notice. If extraction returns empty results, inspect the JSON structure by listing all keys containing `Renderer` and finding where `videoId` or thumbnail URLs appear. See `references/youtube-channel-scraping.md` for debugging steps.

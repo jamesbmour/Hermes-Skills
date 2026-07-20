@@ -437,46 +437,6 @@ Headings 5/6 collapse to H4. Multiple `>` lines render as separate quote blocks 
 | One-off API exploration | `ntn api ...` | curl |
 | Build a sync / webhook / agent tool hosted by Notion | `ntn workers ...` | WSL2 + `ntn workers ...` |
 
-## Database Discovery
-
-To find all databases the integration can access, search filtered by object type:
-
-```bash
-# curl
-curl -s -X POST "https://api.notion.com/v1/search" \
-  -H "Authorization: Bearer *** \
-  -H "Notion-Version: 2025-09-03" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "", "page_size": 50, "filter": {"property": "object", "value": "data_source"}}'
-
-# ntn
-ntn api v1/search query="" filter[property]=object filter[value]=data_source
-```
-
-This returns only databases (data sources), each with its full property schema — useful for discovering what's available before querying.
-
-## Pitfalls
-
-### `ntn` silent failure when env vars are wrong
-
-`ntn` returns **empty output** (no JSON, no error to stdout) when `NOTION_API_TOKEN` is unset or invalid. Piping this into `python3 -c "json.load(sys.stdin)"` produces a cryptic `JSONDecodeError: Expecting value` — not an auth error. Always verify `ntn` is working with a simple `ntn api v1/users` before chaining it into pipelines. If it fails, fall back to curl with `$NOTION_API_KEY` directly.
-
-### Hermes security filter redacts API keys in code
-
-The Hermes security filter strips credential-like strings from `write_file` and `execute_code` payloads. Do NOT embed `$NOTION_API_KEY` or the raw token in Python scripts or shell heredocs — the filter will truncate the string literal, producing syntax errors. Instead, read the key at runtime from the environment:
-
-```python
-import os
-api_key = os.environ["NOTION_API_KEY"]   # works — env vars are not redacted
-auth = "Bearer " + api_key
-```
-
-Shell scripts can use `$NOTION_API_KEY` directly since the variable is expanded at runtime, not embedded in the script source.
-
-### `ntn` installs to Hermes WebUI's $HOME
-
-In the Hermes WebUI, `$HOME` is `~/.hermes/home/`, not the real user home. `ntn` installs to `~/.hermes/home/.local/bin/ntn`. Add this to PATH or use the absolute path. The real Hermes home is at `~/.hermes/`.
-
 ## Notes
 
 - Page/database IDs are UUIDs (with or without dashes — both accepted).
