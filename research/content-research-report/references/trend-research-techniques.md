@@ -42,50 +42,6 @@ curl -s 'https://html.duckduckgo.com/html/?q=YOUR+QUERY+HERE' \
 simplified query terms or broader keywords. Google search via curl does NOT
 work — it returns a JS challenge page with no `<h3>` results.
 
-**Pitfall (2026-07):** DuckDuckGo now also shows a CAPTCHA challenge ("bots use
-DuckDuckGo too") when accessed via browser or curl. Bing search also shows a
-Cloudflare "Verify you are human" challenge. When both DDG and Bing are blocked,
-fall back to **GitHub Trending** (see below) which has been consistently
-accessible and is arguably a better signal for developer-tool trends.
-
-## GitHub Trending — Developer Tool & Framework Trends
-
-GitHub Trending is the most reliable trend source when search engines show
-captchas. It shows what repos developers are actually starring this week —
-a strong signal of real adoption, not just buzz.
-
-### Accessing via browser
-
-Navigate to `https://github.com/trending/python?since=weekly` (or any language).
-The page loads without authentication. Use `browser_console` to extract all
-repos as structured JSON:
-
-```javascript
-[...document.querySelectorAll('article')].map(a => {
-  const h = a.querySelector('h2 a')?.textContent || '';
-  const p = a.querySelector('p')?.textContent || '';
-  const starsThisWeek = a.textContent.match(/([\d,]+)\s+stars this week/)?.[1];
-  return { name: h.trim(), desc: p.trim(), starsThisWeek };
-}).filter(r => r.name)
-```
-
-**Refined extraction (2026-07):** The `h2 a` selector is more reliable than `h2`
-alone — it gets the link text directly without extra whitespace from nested spans.
-The `textContent` approach for stars-this-week avoids fragile DOM selector paths.
-This snippet returns a clean newline-separated JSON array suitable for scanning
-in a single `browser_console` call.
-
-**Why this works well:**
-- No captcha/bot-detection issues (GitHub Trending is publicly accessible)
-- `browser_console` extraction avoids the 8000-char snapshot truncation
-- Returns 15-25 repos with name, description, total stars, and stars-this-week
-- Filter by language (`/python`, `/typescript`, etc.) and time range (`daily`, `weekly`, `monthly`)
-- The "stars this week" metric is a direct adoption signal — repos gaining 2,000+ stars/week are genuinely trending
-
-**What to look for:** New frameworks with rapidly growing stars, tools that
-solve problems in the channel's niche, libraries that complement the channel's
-existing tech stack. Map repo descriptions to the channel's content gaps.
-
 ## Trend Synthesis Pattern
 
 After collecting raw signals, organize into a heat map:

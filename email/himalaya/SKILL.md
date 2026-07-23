@@ -24,7 +24,7 @@ requires the external `himalaya` CLI.
 
 ## References
 
-- `references/configuration.md` (config file setup + IMAP/SMTP authentication)
+- `references/configuration.md` (config file setup, IMAP/SMTP auth, Gmail/iCloud/Office 365/Outlook presets, cross-platform password migration from macOS Keychain to Linux env var)
 - `references/message-composition.md` (MML syntax for composing emails)
 
 ## Prerequisites
@@ -103,6 +103,8 @@ folder.aliases.trash = "Trash"
 
 - **Reading, listing, searching, moving, deleting** all work directly through the terminal tool
 - **Composing/replying/forwarding** — piped input (`cat << EOF | himalaya template send`) is recommended for reliability. Interactive `$EDITOR` mode works with `pty=true` + background + process tool, but requires knowing the editor and its commands
+- **Password storage** — on macOS, `security find-generic-password` reads from Keychain. On Linux, use a shell script that echoes an env var (`echo "${HIMALAYA_ACCOUNT_PASSWORD}"`) and reference it via `backend.auth.cmd`. See `references/configuration.md` → "Env-var password helper" for the full pattern.
+- **Office 365 / Outlook** — IMAP host `outlook.office365.com:993`, SMTP host `smtp.office365.com:587`. Microsoft is phasing out basic auth; may need an App Password from https://mysignins.microsoft.com. See `references/configuration.md` → "Office 365 / Outlook Configuration" for a ready-made config block.
 - Use `--output json` for structured output that's easier to parse programmatically
 - The `himalaya account configure` wizard requires interactive input — use PTY mode: `terminal(command="himalaya account configure", pty=true)`
 

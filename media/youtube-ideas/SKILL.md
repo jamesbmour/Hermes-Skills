@@ -148,14 +148,9 @@ Also fetch Show HN for what people are building:
 curl -s 'https://news.ycombinator.com/show' -A 'Mozilla/5.0'
 ```
 
-#### 2.2 DuckDuckGo Trend Searches (may be captcha-blocked)
+#### 2.2 DuckDuckGo Trend Searches
 
-Google search scraping is unreliable (bot detection). DuckDuckGo's HTML endpoint
-was the recommended fallback, but as of mid-2026 it also shows a CAPTCHA challenge
-("bots use DuckDuckGo too") when accessed via browser or curl. Bing also shows a
-Cloudflare "Verify you are human" challenge. Brave Search shows a captcha slider.
-
-When DDG works (try it first — it may still work from some IPs):
+Google search scraping is unreliable (bot detection). Use DuckDuckGo's HTML endpoint instead:
 
 ```bash
 curl -s 'https://html.duckduckgo.com/html/?q=SEARCH+TERMS' -A 'Mozilla/5.0'
@@ -163,45 +158,15 @@ curl -s 'https://html.duckduckgo.com/html/?q=SEARCH+TERMS' -A 'Mozilla/5.0'
 
 Extract result titles: `class="result__a"[^>]*>([^<]+)</a>`
 
-**When DDG/Bing/Brave are all captcha-blocked, fall back to GitHub Trending (2.3 below).**
-
-**Recommended search queries** (adapt to channel's niche and current year):
-- `AI coding agent framework 2026 trends MCP protocol developer`
-- `model context protocol MCP tutorial LangChain 2026`
-- `agentic RAG graph RAG 2026 tutorial`
-- `local LLM 2026 ollama tool use function calling tutorial`
-- `AI coding assistant 2026 Claude Code Copilot Cursor trends`
-- `computer use agent 2026 browser automation AI`
-- `AI workflow automation 2026 n8n LangGraph crew AI`
-- `RAG 2026 advancements trends vectordb`
-
-#### 2.3 GitHub Trending — Reliable Fallback for Dev-Tool Trends
-
-When search engines are captcha-blocked, GitHub Trending is the most reliable
-source for developer-tool trends. It shows what repos developers are actually
-starring this week — a direct adoption signal.
-
-Navigate to `https://github.com/trending/python?since=weekly` (or any language).
-The page loads without authentication. Use `browser_console` to extract all
-repos as structured JSON:
-
-```javascript
-[...document.querySelectorAll('article')].map(a => {
-  const h = a.querySelector('h2 a')?.textContent || '';
-  const p = a.querySelector('p')?.textContent || '';
-  const starsThisWeek = a.textContent.match(/([\d,]+)\s+stars this week/)?.[1];
-  return { name: h.trim(), desc: p.trim(), starsThisWeek };
-}).filter(r => r.name)
-```
-
-For all-language trends (not just Python): `https://github.com/trending?since=weekly`
-
-**Why this works well:**
-- No captcha/bot-detection issues (GitHub Trending is publicly accessible)
-- `browser_console` extraction avoids the 8000-char snapshot truncation
-- Returns 15-25 repos with name, description, and stars-this-week
-- Filter by language (`/python`, `/typescript`, etc.) and time range (`daily`, `weekly`, `monthly`)
-- Repos gaining 2,000+ stars/week are genuinely trending
+**Recommended search queries** (adapt to channel's niche):
+- `AI coding agent framework 2025 trends MCP protocol developer`
+- `model context protocol MCP tutorial LangChain 2025`
+- `agentic RAG graph RAG 2025 tutorial`
+- `local LLM 2025 ollama tool use function calling tutorial`
+- `AI coding assistant 2025 Claude Code Copilot Cursor trends`
+- `computer use agent 2025 browser automation AI`
+- `AI workflow automation 2025 n8n LangGraph crew AI`
+- `RAG 2025 advancements trends vectordb`
 
 #### 2.3 Synthesize Trends
 
@@ -276,7 +241,7 @@ The final report should be a markdown file with these sections:
 
 2. **YouTube page structure changes** — as of mid-2026, videos use `richItemRenderer` → `lockupViewModel`. If scraping fails, inspect the raw JSON structure with `json.dumps(rich_items[0], indent=2)[:4000]` to find the new path.
 
-3. **Google search blocking** — Google frequently blocks automated requests. DuckDuckGo's HTML endpoint was more reliable for trend research, but as of mid-2026 it also shows a CAPTCHA. Bing and Brave Search also captcha-block automated access. When all search engines fail, fall back to GitHub Trending (`https://github.com/trending/python?since=weekly`) which is publicly accessible without captcha. See section 2.3 above.
+3. **Google search blocking** — Google frequently blocks automated requests. DuckDuckGo's HTML endpoint is more reliable for trend research.
 
 4. **Transcripts disabled** — some videos have no transcripts. Skip those and pick alternatives. The `youtube-content` skill handles this gracefully.
 
@@ -284,12 +249,9 @@ The final report should be a markdown file with these sections:
 
 6. **Non-English channels** — the transcript analysis and trend research should adapt to the channel's language. Search queries should be in the relevant language.
 
-7. **web_search tool may be unconfigured** — in some Hermes environments, the `web_search` tool returns "Web tools are not configured" because Firecrawl API keys are not set. When this happens, use `browser_navigate` to access GitHub Trending, HN, and other sites directly, and `browser_console` to extract structured data from the page DOM.
-
 ## Tips
 
 - **Batch independent calls** — channel scraping, HN fetching, and DDG searches can all run in parallel.
 - **Use execute_code for parsing** — the ytInitialData JSON is 400K+ chars. Parsing it in Python via `execute_code` keeps it out of your context window.
-- **Use browser_console for GitHub Trending extraction** — navigate to the trending page, then run the JS extraction snippet (section 2.3) via `browser_console(expression='...')` to get structured JSON without the 8000-char snapshot truncation.
 - **Save the report as a .md file** — the user can review, edit, and share it.
-- **Offer to save as a skill** — after completing a complex analysis, offer to save the workflow. This skill itself was created from such offer.
+- **Offer to save as a skill** — after completing a complex analysis, offer to save the workflow. This skill itself was created from such an offer.

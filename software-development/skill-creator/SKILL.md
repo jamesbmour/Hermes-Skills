@@ -377,24 +377,6 @@ push), and some local skills are symlinks to `~/.agents/skills/` so use
 `cp -RL` or resolve the real path when copying. Full details in
 `references/skill-sharing.md`.
 
-### Syncing a Custom Skills Git Repo
-
-When a user asks to sync their custom skills with a GitHub repo, treat it as a
-class-level skill-library maintenance task, not a one-off copy. Use a safe
-sync pattern:
-
-1. Add the repo as a Hermes skill tap if appropriate: `hermes skills tap add owner/repo`, then verify the tap path. Some custom repos keep `SKILL.md` directories at the repo root rather than under `skills/`; if the CLI defaults to `skills/`, update the tap metadata so the path is empty/root.
-2. Compare installed skills and repo skills by parsed frontmatter `name:`, not only by directory path. Custom repos often contain duplicate category paths for the same skill name.
-3. Install or copy only missing unique skill names by default. Do not create duplicate local skills just because the repo has the same name under another category.
-4. If the hub scanner blocks a trusted personal repo skill, prefer explaining the scanner finding. Only manually copy from a trusted local clone after checking for symlinks and keeping the destination inside `~/.hermes/skills/`.
-5. For reusable sync, create a repo-local script that supports `status`, `pull`, `push`, and `sync`, with safe defaults: no deletes and no overwrites unless `--all` is passed. Add a small wrapper under `~/.hermes/scripts/` if the user wants a convenient command.
-6. Verify with an ad-hoc temporary test script when there is no canonical test suite: use `tempfile`, create isolated fake local/repo skill roots, test duplicate-name skipping, default no-overwrite behavior, and `--all` overwrite behavior, then remove the temporary script.
-
-Pitfall: Git commits launched from Hermes desktop/TUI may not have access to the
-user's 1Password/GPG signing agent socket. If automation needs to commit and
-signing fails, use `git -c commit.gpgsign=false commit ...` for that automation
-commit rather than treating git itself as broken.
-
 ---
 
 ## Verification Checklist

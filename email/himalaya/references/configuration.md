@@ -96,6 +96,81 @@ folder.aliases.trash = "[Gmail]/Trash"
 
 **Note:** Gmail requires an App Password if 2FA is enabled.
 
+## Office 365 / Outlook Configuration
+
+```toml
+[accounts.work]
+email = "user@company.com"
+display-name = "Your Name"
+default = true
+downloads-dir = "/home/user/Downloads"
+
+backend.type = "imap"
+backend.host = "outlook.office365.com"
+backend.port = 993
+backend.login = "user@company.com"
+backend.encryption.type = "tls"
+backend.auth.type = "password"
+backend.auth.cmd = "/home/user/.config/himalaya/get-pass.sh"
+
+message.send.backend.type = "smtp"
+message.send.backend.host = "smtp.office365.com"
+message.send.backend.port = 587
+message.send.backend.login = "user@company.com"
+message.send.backend.encryption.type = "start-tls"
+message.send.backend.auth.type = "password"
+message.send.backend.auth.cmd = "/home/user/.config/himalaya/get-pass.sh"
+```
+
+**Server settings:**
+
+| Protocol | Host | Port | Encryption |
+|----------|------|------|------------|
+| IMAP | `outlook.office365.com` | 993 | TLS |
+| SMTP | `smtp.office365.com` | 587 | STARTTLS |
+
+**Modern Auth caveat:** Microsoft has been phasing out basic authentication
+(username/password) for IMAP/SMTP on Office 365 tenants. If basic auth is
+disabled, use an **App Password** (generate at
+https://mysignins.microsoft.com → Security info → Add sign-in method →
+App password). If the tenant blocks app passwords entirely, IMAP/SMTP
+won't work — use the Microsoft Graph API instead.
+
+### Env-var password helper (cross-platform migration from macOS Keychain)
+
+When migrating a himalaya config from macOS (which uses
+`security find-generic-password` to read from Keychain) to Linux, swap
+the keychain command for a small shell script that reads from an
+environment variable. This works well with Hermes' `.env` file.
+
+**1. Create the helper script** at `~/.config/himalaya/get-pass.sh`:
+
+```bash
+#!/bin/bash
+echo "${HIMALAYA_ACCOUNT_PASSWORD}"
+```
+
+```bash
+chmod +x ~/.config/himalaya/get-pass.sh
+```
+
+**2. Set the env var** in `~/.hermes/.env` (or any shell profile):
+
+```
+HIMALAYA_ACCOUNT_PASSWORD=your-app-password-here
+```
+
+**3. Reference the script** in `config.toml`:
+
+```toml
+backend.auth.cmd = "/home/user/.config/himalaya/get-pass.sh"
+message.send.backend.auth.cmd = "/home/user/.config/himalaya/get-pass.sh"
+```
+
+The same script can be reused for both IMAP and SMTP auth since both
+read the same password. Use distinct env var names per account if you
+have multiple accounts with different passwords.
+
 ## iCloud Configuration
 
 ```toml

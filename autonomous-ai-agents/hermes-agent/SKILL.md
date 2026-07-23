@@ -219,8 +219,6 @@ hermes profile export NAME  Export to tar.gz
 hermes profile import FILE  Import from archive
 ```
 
-Profile customization guide: `skill_view(name="hermes-agent", file_path="references/profiles.md")` — covers SOUL.md personality, AGENTS.md project context, skills/config.yaml, and common use cases.
-
 ### Credential Pools
 
 ```
